@@ -1,26 +1,30 @@
 
 ```
-环境jdk8
-
+环境jdk8！！！！
+环境jdk8！！！！
+环境jdk8！！！！
+一定要先检查环境keytool的不同版本生成keystore策略不同，
 
 
 域名映射:
 修改/etc/hosts文件，添加服务端域名(server.cas.com) 以及两个客户端的域名(app1.cas.com , app2.cas.com)
 
-生成keystore,用于生成证书，https访问需要TLS认证： 3650day
+##生成keystore,用于生成证书，https访问需要SSL协议 TLS认证： 3650day
 注意名字要用server.cas.com，其他随意
 keytool -genkey -alias tomcat -keyalg RSA -validity 3650 -keystore /Users/mac/Desktop/tomcat.keystore
 
-查看证书
-keytool -list -keystore /Users/mac/Desktop/tomcat.keystore
-生成秘钥库
+##查看证书
 keytool -list -keystore /Users/mac/Desktop/tomcat.keystore
 
 #生成证书cert 输入第一步中keystore的密码changeit
 keytool -export -alias tomcat -file /Users/mac/Desktop/tomcat.cer -keystore /Users/mac/Desktop/tomcat.keystore -validity 3650 
 
 ##信任授权文件到jdk 这里你需要换成你自己的jdk目录
-sudo keytool -import -keystore /Library/Java/JavaVirtualMachines/jdk1.8.0_202.jdk/Contents/Home/jre/lib/security/cacerts -file /Users/wangsaichao/Desktop/tomcat.cer -alias tomcat -storepass changeit
+sudo keytool -import -keystore /Library/Java/JavaVirtualMachines/jdk1.8.0_202.jdk/Contents/Home/jre/lib/security/cacerts -file /Users/mac/Desktop/tomcat.cer -alias tomcat -storepass changeit
+##查看证书
+keytool -list -v -keystore /Library/Java/JavaVirtualMachines/jdk1.8.0_202.jdk/Contents/Home/jre/lib/security/cacerts
+##如果已经存在 则对应的删除操作
+sudo keytool -delete -alias tomcat -keystore /Library/Java/JavaVirtualMachines/jdk1.8.0_202.jdk/Contents/Home/jre/lib/security/cacerts
 
 ##tomcat增加下面的8443端口配置
 <Connector port="8443" protocol="org.apache.coyote.http11.Http11NioProtocol"
@@ -33,7 +37,7 @@ sudo keytool -import -keystore /Library/Java/JavaVirtualMachines/jdk1.8.0_202.jd
 
 #在propeties中增加ssl相关配置
 server.ssl.enabled=true
-server.ssl.key-store=file:/Users/wangsaichao/Desktop/tomcat.keystore
+server.ssl.key-store=file:/Users/mac/Desktop/tomcat.keystore
 server.ssl.key-store-password=changeit
 server.ssl.key-password=changeit
 server.ssl.keyAlias=tomcat
@@ -137,12 +141,12 @@ https://server.cas.com:8443/cas/oauth2.0/authorize?response_type=code&client_id=
 https://www.baidu.com/?code=OC-2-h0mFstbufIteBRdZZzLmSWSJJJJiRrgh
 
 ##获取token
-https://server.cas.com:8443/cas/oauth2.0/accessToken?grant_type=authorization_code&client_id=1000&client_secret=1000&code=OC-1-zgSS9AWbgbm2VQcM4INLKuFy0k-trJir&redirect_uri=http://www.baidu.com
-
-access_token=AT-2-XJSSe2pQqQTmGJ44NH8iMFyexANg4-lL&expires_in=28800
+https://server.cas.com:8443/cas/oauth2.0/accessToken?grant_type=authorization_code&client_id=1000&client_secret=1000&code=OC-1-tzlgbunzQlLiL41JK-F5FbCYKIpC3XGs&redirect_uri=http://www.baidu.com
+##返回
+access_token=AT-1-lRtS4wxJsOfOrcTIrnOwHgvjtZscImZI&expires_in=28800
 
 ##通过token获取服务信息
-https://server.cas.com:8443/cas/oauth2.0/profile?access_token=AT-2-XJSSe2pQqQTmGJ44NH8iMFyexANg4-lL
+https://server.cas.com:8443/cas/oauth2.0/profile?access_token=AT-1-lRtS4wxJsOfOrcTIrnOwHgvjtZscImZI
 
 {
 "service" : "http://www.baidu.com",
@@ -154,5 +158,30 @@ https://server.cas.com:8443/cas/oauth2.0/profile?access_token=AT-2-XJSSe2pQqQTmG
 }
 
 https://www.baidu.com/?code=OC-3-dK8GeeHIeG7J1Fw5rlVuBRIMahGpzobY
+
+
+##配置客户端
+注意：services目录中可包含多个 JSON 文件，其命名必须满足以下规则：${name}-${id}.json,id必须为json文件中内容id一致。
+
+{
+  "@class" : "org.apereo.cas.services.RegexRegisteredService",
+  "serviceId" : "^(https|imaps|http)://.*",
+  "name" : "测试客户端",
+  "id" : 10000001,
+  "description" : "这是一个测试客户端的服务，所有的https或者http访问都允许通过",
+  "evaluationOrder" : 10000
+}
+
+#注册客户端
+cas.serviceRegistry.initFromJson=true
+cas.serviceRegistry.watcherEnabled=true
+cas.serviceRegistry.schedule.repeatInterval=120000
+cas.serviceRegistry.schedule.startDelay=15000
+cas.serviceRegistry.managementType=DEFAULT
+cas.serviceRegistry.json.location=classpath:/services
+cas.logout.followServiceRedirects=true
+
+#cas-client 能够做到权限控制的原因就是filter
+
 
 ```
